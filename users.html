@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quản lý User</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-light">
+  <div class="container mt-4">
+    <a href="index.html" class="btn btn-outline-primary mb-4 shadow-sm px-4 py-2 rounded-pill fw-semibold">
+      <i class="fas fa-arrow-left"></i> Quay lại Trang chính
+    </a>
+    <h2 class="text-primary mb-4"><i class="fas fa-user"></i> Danh sách User</h2>
+
+    <form id="userForm" class="card p-4 shadow-sm mb-4">
+      <h5 class="mb-3">Thêm / Sửa User</h5>
+      <input type="hidden" id="user_id">
+      <div class="row">
+        <div class="col-md-2 mb-3">
+          <label class="form-label">Username</label>
+          <input class="form-control" id="username" placeholder="Tên đăng nhập">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="form-label">Mật khẩu (hash)</label>
+          <input class="form-control" id="password_hash" placeholder="Hash mật khẩu">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="form-label">Email</label>
+          <input class="form-control" id="email" placeholder="VD: email@gmail.com">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="form-label">Họ tên</label>
+          <input class="form-control" id="full_name" placeholder="VD: Nguyễn Văn A">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="form-label">Số điện thoại</label>
+          <input class="form-control" id="phone_number" placeholder="VD: 0909123456">
+        </div>
+        <div class="col-md-2 mb-3 d-flex align-items-end">
+          <button type="submit" class="btn btn-success w-100"><i class="fas fa-save"></i> Lưu</button>
+        </div>
+      </div>
+    </form>
+
+    <table class="table table-hover shadow-sm bg-white">
+      <thead class="table-primary">
+        <tr>
+          <th>User ID</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Họ tên</th>
+          <th>Điện thoại</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody id="userTable"></tbody>
+    </table>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    function loadUsers() {
+      $.get("http://localhost/qlkh/php/user/get_users.php", function(data) {
+        if (!Array.isArray(data)) {
+          try { data = JSON.parse(data); } catch (e) { data = []; }
+        }
+        const tbody = $("#userTable").empty();
+        data.forEach(u => {
+          tbody.append(`<tr>
+            <td>${u.user_id}</td>
+            <td>${u.username}</td>
+            <td>${u.email}</td>
+            <td>${u.full_name}</td>
+            <td>${u.phone_number}</td>
+            <td>
+              <button class="btn btn-sm btn-warning me-1" title="Sửa" onclick="editUser(${u.user_id})"><i class="fas fa-edit"></i></button>
+              <button class="btn btn-sm btn-danger" title="Xóa" onclick="deleteUser(${u.user_id})"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>`);
+        });
+      });
+    }
+
+    function editUser(id) {
+      $.get(`http://localhost/qlkh/php/user/get_user_by_id.php?user_id=${id}`, function(u) {
+        $("#user_id").val(u.user_id);
+        $("#username").val(u.username);
+        $("#password_hash").val(u.password_hash || "");
+        $("#email").val(u.email);
+        $("#full_name").val(u.full_name);
+        $("#phone_number").val(u.phone_number);
+      });
+    }
+
+    function deleteUser(id) {
+      if (confirm("Bạn có chắc muốn xoá user này?")) {
+        $.ajax({
+          url: `http://localhost/qlkh/php/user/delete_user.php?user_id=${id}`,
+          type: "DELETE",
+          success: res => {
+            alert(res.message);
+            loadUsers();
+          }
+        });
+      }
+    }
+
+    $("#userForm").submit(function(e) {
+      e.preventDefault();
+      const id = $("#user_id").val();
+      const payload = {
+        username: $("#username").val(),
+        password_hash: $("#password_hash").val(),
+        email: $("#email").val(),
+        full_name: $("#full_name").val(),
+        phone_number: $("#phone_number").val()
+      };
+      const url = id
+        ? `http://localhost/qlkh/php/user/update_user.php?user_id=${id}`
+        : "http://localhost/qlkh/php/user/create_user.php";
+
+      $.ajax({
+        url: url,
+        type: id ? "PUT" : "POST",
+        contentType: "application/json",
+        data: JSON.stringify(payload),
+        success: res => {
+          alert(res.message);
+          $("#userForm")[0].reset();
+          loadUsers();
+        }
+      });
+    });
+
+    $(document).ready(loadUsers);
+  </script>
+</body>
+</html>

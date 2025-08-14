@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sản phẩm</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="bg-light">
+  <div class="container mt-4">
+    <a href="index.html" class="btn btn-outline-primary mb-4 shadow-sm px-4 py-2 rounded-pill fw-semibold">
+      <i class="fas fa-arrow-left"></i> Quay lại Trang chính
+    </a>
+
+    <h2 class="text-primary mb-4"><i class="fas fa-box"></i> Danh sách Sản phẩm</h2>
+
+    <form id="productForm" class="card p-4 shadow-sm mb-4">
+      <h5 class="mb-3">Thêm / Sửa Sản phẩm</h5>
+      <input type="hidden" id="product_id">
+      <div class="row">
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Tên sản phẩm</label>
+          <input class="form-control" id="name" placeholder="VD: Sản phẩm A" required>
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="form-label">Giá (VNĐ)</label>
+          <input class="form-control" type="number" id="price" placeholder="VD: 100000" required>
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="form-label">Tồn kho</label>
+          <input class="form-control" type="number" id="stock_quantity" placeholder="VD: 50" required>
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="form-label">ID Danh mục</label>
+          <input class="form-control" type="number" id="category_id" placeholder="VD: 1">
+        </div>
+        <div class="col-md-3 mb-3 d-flex align-items-end">
+          <button type="submit" class="btn btn-success w-100"><i class="fas fa-save"></i> Lưu</button>
+        </div>
+      </div>
+    </form>
+
+    <table class="table table-hover shadow-sm bg-white">
+      <thead class="table-primary">
+        <tr>
+          <th>Product ID</th><th>Tên</th><th>Giá</th><th>Tồn kho</th><th>Danh mục</th><th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody id="productTable"></tbody>
+    </table>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    function formatVND(amount) {
+      if (!amount) return "";
+      return Number(amount).toLocaleString('vi-VN') + " VNĐ";
+    }
+    function loadProducts() {
+      $.get("http://localhost/qlkh/php/products/get_products.php", function(data) {
+        const tbody = $("#productTable").empty();
+        data.forEach(p => {
+          tbody.append(`<tr>
+            <td>${p.product_id}</td><td>${p.name}</td><td>${formatVND(p.price)}</td>
+            <td>${p.stock_quantity}</td><td>${p.category_id} (${p.category_name || ""}) </td>
+            <td>
+              <button class="btn btn-sm btn-warning me-1" title="Sửa" onclick="editProduct(${p.product_id}, '${p.name}', ${p.price}, ${p.stock_quantity}, ${p.category_id})"><i class="fas fa-edit"></i></button>
+              <button class="btn btn-sm btn-danger" title="Xóa" onclick="deleteProduct(${p.product_id})"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>`);
+        });
+      });
+    }
+
+    function editProduct(id, name, price, stock, cat) {
+      $("#product_id").val(id);
+      $("#name").val(name);
+      $("#price").val(price);
+      $("#stock_quantity").val(stock);
+      $("#category_id").val(cat);
+    }
+
+    function deleteProduct(id) {
+      if (confirm("Bạn có chắc chắn muốn xoá sản phẩm này không?")) {
+        $.ajax({
+          url: `http://localhost/qlkh/php/products/delete_product.php?product_id=${id}`,
+          type: "DELETE",
+          success: res => {
+            alert(res.message);
+            loadProducts();
+          }
+        });
+      }
+    }
+
+    $("#productForm").submit(function(e) {
+      e.preventDefault();
+      const id = $("#product_id").val();
+      const payload = {
+        name: $("#name").val(),
+        price: $("#price").val(),
+        stock_quantity: $("#stock_quantity").val(),
+        category_id: $("#category_id").val()
+      };
+      const url = id 
+        ? `http://localhost/qlkh/php/products/update_product.php?product_id=${id}`
+        : "http://localhost/qlkh/php/products/create_product.php";
+
+      $.ajax({
+        url: url,
+        type: id ? "PUT" : "POST",
+        contentType: "application/json",
+        data: JSON.stringify(payload),
+        success: res => {
+          alert(res.message);
+          $("#productForm")[0].reset();
+          loadProducts();
+        }
+      });
+    });
+
+    $(document).ready(loadProducts);
+  </script>
+</body>
+
+</html>

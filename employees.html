@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nhân viên</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-light">
+  <div class="container mt-4">
+    <a href="index.html" class="btn btn-outline-primary mb-4 shadow-sm px-4 py-2 rounded-pill fw-semibold">
+      <i class="fas fa-arrow-left"></i> Quay lại Trang chính
+    </a>
+
+    <h2 class="text-primary mb-4"><i class="fas fa-id-card"></i> Danh sách Nhân viên</h2>
+
+    <form id="employeeForm" class="card p-4 shadow-sm mb-4">
+      <h5 class="mb-3">Thêm / Sửa Nhân viên</h5>
+      <input type="hidden" id="employee_id">
+      <div class="row">
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Họ tên</label>
+          <input class="form-control" id="full_name" placeholder="VD: Nguyễn Văn A" required>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="form-label">Email</label>
+          <input class="form-control" id="email" placeholder="VD: email@gmail.com" required>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label for="position" class="form-label">Chức danh</label>
+          <select class="form-select" id="position" name="position" required>
+            <option value="">-- Chọn chức danh --</option>
+            <option value="Staff">Staff</option>
+            <option value="Manager">Manager</option>
+          </select>
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="form-label">Ngày tuyển dụng</label>
+          <input class="form-control" id="hire_date" type="date" required>
+        </div>
+        <div class="col-md-1 mb-3 d-flex align-items-end">
+          <button type="submit" class="btn btn-success w-100"><i class="fas fa-save"></i> Lưu</button>
+        </div>
+      </div>
+    </form>
+
+    <table class="table table-hover shadow-sm bg-white">
+      <thead class="table-primary">
+        <tr>
+          <th>ID</th><th>Họ tên</th><th>Email</th><th>Chức danh</th><th>Ngày tuyển dụng</th><th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody id="employeeTable"></tbody>
+    </table>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    function loadEmployees() {
+      $.get("http://localhost/qlkh/php/employees/get_employees.php", function(data) {
+        if (!Array.isArray(data)) {
+          try { data = JSON.parse(data); } catch (e) { data = []; }
+        }
+        const tbody = $("#employeeTable").empty();
+        data.forEach(e => {
+          tbody.append(`<tr>
+            <td>${e.employee_id}</td>
+            <td>${e.full_name}</td>
+            <td>${e.email}</td>
+            <td>${e.position}</td>
+            <td>${e.hire_date ? String(e.hire_date).substring(0,10) : ""}</td>
+            <td>
+              <button class="btn btn-sm btn-warning me-1" title="Sửa" onclick="editEmployee(${e.employee_id})"><i class="fas fa-edit"></i></button>
+              <button class="btn btn-sm btn-danger" title="Xóa" onclick="deleteEmployee(${e.employee_id})"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>`);
+        });
+      });
+    }
+
+    function editEmployee(id) {
+      $.get(`http://localhost/qlkh/php/employees/get_employee_by_id.php?employee_id=${id}`, function(e) {
+        if (!e || !e.employee_id) { alert("Không tải được nhân viên"); return; }
+        $("#employee_id").val(e.employee_id);
+        $("#full_name").val(e.full_name);
+        $("#email").val(e.email);
+        $("#position").val(e.position);
+        $("#hire_date").val(e.hire_date ? String(e.hire_date).substring(0,10) : "");
+      });
+    }
+
+    function deleteEmployee(id) {
+      if (confirm("Bạn có chắc chắn muốn xoá nhân viên này không?")) {
+        $.ajax({
+          url: `http://localhost/qlkh/php/employees/delete_employee.php?employee_id=${id}`,
+          type: "DELETE",
+          success: res => {
+            alert(res.message || "Đã xoá");
+            loadEmployees();
+          },
+          error: xhr => {
+            try {
+              const r = JSON.parse(xhr.responseText);
+              alert(r.message || "Xoá thất bại");
+            } catch { alert("Xoá thất bại"); }
+          }
+        });
+      }
+    }
+
+    $("#employeeForm").submit(function(e) {
+      e.preventDefault();
+      const id = $("#employee_id").val();
+      const payload = {
+        full_name: $("#full_name").val(),
+        email: $("#email").val(),
+        position: $("#position").val(),
+        hire_date: $("#hire_date").val()
+      };
+      const url = id
+        ? `http://localhost/qlkh/php/employees/update_employee.php?employee_id=${id}`
+        : "http://localhost/qlkh/php/employees/create_employee.php";
+
+      $.ajax({
+        url: url,
+        type: id ? "PUT" : "POST",
+        contentType: "application/json",
+        data: JSON.stringify(payload),
+        success: res => {
+          alert(res.message || "Thành công");
+          $("#employeeForm")[0].reset();
+          $("#employee_id").val("");
+          loadEmployees();
+        },
+        error: xhr => {
+          try {
+            const r = JSON.parse(xhr.responseText);
+            alert(r.message || "Có lỗi xảy ra");
+          } catch { alert("Có lỗi xảy ra"); }
+        }
+      });
+    });
+
+    $(document).ready(loadEmployees);
+  </script>
+</body>
+</html>

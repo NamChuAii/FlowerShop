@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customers</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="bg-light">
+  <div class="container mt-4">
+    <a href="index.html" class="btn btn-outline-primary mb-4 shadow-sm px-4 py-2 rounded-pill fw-semibold">
+      <i class="fas fa-arrow-left"></i> Quay lại Trang chính
+    </a>
+
+    <h2 class="text-primary mb-4"><i class="fas fa-users"></i> Danh sách Khách hàng</h2>
+
+    <form id="customerForm" class="card p-4 shadow-sm mb-4">
+      <h5 class="mb-3">Thêm / Sửa Khách hàng</h5>
+      <input type="hidden" id="customer_id">
+      <div class="row">
+        <div class="col-md-2 mb-3">
+          <label class="form-label">User ID</label>
+          <input class="form-control" type="number" id="user_id" placeholder="ID từ bảng users">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="form-label">Họ tên</label>
+          <input class="form-control" id="full_name" placeholder="VD: Nguyễn Văn A">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="form-label">Email</label>
+          <input class="form-control" id="email" placeholder="VD: email@gmail.com">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="form-label">Số điện thoại</label>
+          <input class="form-control" id="phone_number" placeholder="VD: 0909123456">
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="form-label">Địa chỉ</label>
+          <input class="form-control" id="address" placeholder="Số nhà, đường, tỉnh...">
+        </div>
+        <div class="col-md-1 mb-3">
+          <label class="form-label">Điểm</label>
+          <input class="form-control" id="loyalty_points" type="number" placeholder="VD: 100">
+        </div>
+        <div class="col-md-1 mb-3 d-flex align-items-end">
+          <button type="submit" class="btn btn-success w-100"><i class="fas fa-save"></i> Lưu</button>
+        </div>
+      </div>
+    </form>
+
+    <table class="table table-hover shadow-sm bg-white">
+      <thead class="table-primary">
+        <tr>
+          <th>Customer ID</th><th>Họ tên</th><th>Email</th><th>Điện thoại</th><th>Điểm</th><th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody id="customerTable"></tbody>
+    </table>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    function loadCustomers() {
+      $.get("http://localhost/qlkh/php/customers/get_customers.php", function(data) {
+        const tbody = $("#customerTable").empty();
+        data.forEach(c => {
+          tbody.append(`<tr>
+            <td>${c.customer_id}</td><td>${c.full_name}</td><td>${c.email}</td>
+            <td>${c.phone_number}</td><td>${c.loyalty_points}</td>
+            <td>
+              <button class="btn btn-sm btn-warning me-1" title="Sửa" onclick="editCustomer(${c.customer_id})"><i class="fas fa-edit"></i></button>
+              <button class="btn btn-sm btn-danger" title="Xóa" onclick="deleteCustomer(${c.customer_id})"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>`);
+        });
+      });
+    }
+
+    function editCustomer(id) {
+      $.get("http://localhost/qlkh/php/customers/get_customers.php", function(data) {
+        const c = data.find(x => x.customer_id == id);
+        $("#customer_id").val(c.customer_id);
+        $("#user_id").val(c.user_id);
+        $("#full_name").val(c.full_name);
+        $("#email").val(c.email);
+        $("#phone_number").val(c.phone_number);
+        $("#address").val(c.address);
+        $("#loyalty_points").val(c.loyalty_points);
+      });
+    }
+
+    function deleteCustomer(id) {
+      if (confirm("Bạn có chắc muốn xoá khách hàng này?")) {
+        $.ajax({
+          url: `http://localhost/qlkh/php/customers/delete_customer.php?customer_id=${id}`,
+          type: "DELETE",
+          success: res => {
+            alert(res.message);
+            loadCustomers();
+          }
+        });
+      }
+    }
+
+    $("#customerForm").submit(function(e) {
+      e.preventDefault();
+      const id = $("#customer_id").val();
+      const payload = {
+        user_id: $("#user_id").val(),
+        full_name: $("#full_name").val(),
+        email: $("#email").val(),
+        phone_number: $("#phone_number").val(),
+        address: $("#address").val(),
+        loyalty_points: $("#loyalty_points").val()
+      };
+      const url = id 
+        ? `http://localhost/qlkh/php/customers/update_customer.php?customer_id=${id}`
+        : "http://localhost/qlkh/php/customers/create_customer.php";
+
+      $.ajax({
+        url: url,
+        type: id ? "PUT" : "POST",
+        contentType: "application/json",
+        data: JSON.stringify(payload),
+        success: res => {
+          alert(res.message);
+          $("#customerForm")[0].reset();
+          loadCustomers();
+        }
+      });
+    });
+
+    $(document).ready(loadCustomers);
+  </script>
+</body>
+
+</html>
