@@ -126,7 +126,6 @@ function editOrder(id) {
       // Sửa tại đây: chỉ lấy phần ngày (yyyy-MM-dd)
       $("#order_date").val(o.order_date ? o.order_date.substring(0, 10) : "");
       $("#status").val(o.status);
-      $("#total_amount").val(o.total_amount);
     }
   });
 }
@@ -152,7 +151,6 @@ $("#orderForm").submit(function(e) {
     employee_id: $("#employee_id").val(),
     order_date: $("#order_date").val(),
     status: $("#status").val(),
-    total_amount: $("#total_amount").val()
   };
   const url = id 
     ? `http://localhost/qlkh/php/orders/update_order.php?order_id=${id}`
